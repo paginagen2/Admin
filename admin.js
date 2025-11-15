@@ -75,20 +75,34 @@ function isMobileDevice() {
     return /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent || '');
 }
 
+// detectar navegadores in-app que suelen bloquear cookies/popups
+function isInAppBrowser() {
+    const ua = navigator.userAgent || '';
+    return /FBAN|FBAV|Instagram|Twitter|Line|Messenger|LinkedIn|WhatsApp|Snapchat/i.test(ua);
+}
+
+// bandera para saber si venimos de un redirect
+const REDIRECT_FLAG = 'firebase_auth_redirecting_v1';
+
+// intenta iniciar sesión: redirect en móviles o in-app, popup en escritorio con fallback
 document.getElementById('google-signin-btn').addEventListener('click', async () => {
     try {
-        if (isMobileDevice()) {
-            console.log('Auth: usando signInWithRedirect (mobile)');
+        // si estamos dentro de un webview/in-app browser, mejor usar redirect
+        if (isMobileDevice() || isInAppBrowser()) {
+            console.log('Auth: usando signInWithRedirect (mobile/in-app)');
+            localStorage.setItem(REDIRECT_FLAG, '1');
             await signInWithRedirect(auth, provider);
             return;
         }
 
-        // escritorio: intentar popup y si falla usar redirect
+        // escritorio: intentar popup, si falla -> redirect
         try {
+            console.log('Auth: intentando signInWithPopup');
             const result = await signInWithPopup(auth, provider);
-            console.log('Auth: signInWithPopup OK', result.user && result.user.email);
+            console.log('Auth: signInWithPopup OK ->', result.user && result.user.email);
         } catch (popupErr) {
-            console.warn('Auth: popup falló, hacemos redirect como fallback', popupErr);
+            console.warn('Auth: popup falló, fallback a redirect', popupErr);
+            localStorage.setItem(REDIRECT_FLAG, '1');
             await signInWithRedirect(auth, provider);
         }
     } catch (error) {
@@ -100,32 +114,51 @@ document.getElementById('google-signin-btn').addEventListener('click', async () 
 // Manejar resultado cuando se vuelve del redirect (importante en móviles)
 (async function handleRedirectResult() {
     try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-            console.log('Auth: sesión iniciada vía redirect ->', result.user.email);
-            // actualizar UI si es necesario, onAuthStateChanged se ejecutará también
-            // loadCurrentSection(); // descomenta si quieres forzar recarga de datos
+        // solo ejecutar getRedirectResult si acabamos de redirigir (evita "no-auth-event" ruidoso)
+        if (localStorage.getItem(REDIRECT_FLAG)) {
+            localStorage.removeItem(REDIRECT_FLAG);
+            console.log('Auth: procesando getRedirectResult (flag presente)');
+            try {
+                const result = await getRedirectResult(auth);
+                if (result && result.user) {
+                    console.log('Auth: sesión iniciada vía redirect ->', result.user.email);
+                } else {
+                    console.log('Auth: getRedirectResult no devolvió usuario');
+                }
+            } catch (err) {
+                // algunos navegadores/devices devuelven auth/no-auth-event; mostrar solo errores relevantes
+                if (err && err.code !== 'auth/no-auth-event') {
+                    console.error('Error en getRedirectResult:', err);
+                    alert('Error al completar login por redirect: ' + (err.message || err.code));
+                } else {
+                    console.log('getRedirectResult: ignorado:', err && err.code);
+                }
+            }
         } else {
-            console.log('Auth: no hay resultado de redirect');
+            console.log('Auth: no hay flag de redirect, se omite getRedirectResult');
         }
     } catch (err) {
-        // ignorar el error "no-auth-event" que aparece a veces
-        if (err && err.code !== 'auth/no-auth-event') {
-            console.error('Error al procesar getRedirectResult:', err);
-        }
+        console.error('Error en handleRedirectResult global:', err);
     }
 })();
 
 onAuthStateChanged(auth, (user) => {
     currentUser = user;
     if (user) {
-        console.log('onAuthStateChanged: usuario conectado ->', user.email);
-        // aquí actualiza tu UI: ocultar modal de login, mostrar panel, cargar datos...
-        // example: document.getElementById('login-modal').style.display = 'none';
+        console.log('onAuthStateChanged: usuario conectado ->', user.email || user.uid);
+        // actualizar UI al usuario conectado (ajusta IDs según tu HTML)
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) loginModal.style.display = 'none';
         loadCurrentSection();
     } else {
         console.log('onAuthStateChanged: ningún usuario conectado');
-        // mostrar pantalla de login si corresponde
+        // si estamos en un in-app browser informar al usuario
+        if (isInAppBrowser()) {
+            // muestra un mensaje simple para abrir en el navegador por defecto
+            if (confirm('Parece que estás dentro de la app de otra aplicación. Si el inicio de sesión no funciona, abre este enlace en el navegador del sistema. ¿Abrir en navegador?')) {
+                window.open(window.location.href, '_blank');
+            }
+        }
     }
 });
 
