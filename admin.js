@@ -69,97 +69,66 @@ function parseDateDDMMYYYY(dateStr) {
     return new Date(year, month - 1, day);
 }
 
-// ==================== AUTENTICACIÓN (reemplazado) ====================
+// ==================== AUTENTICACIÓN ====================
 
-// detección simple móvil / in-app
 function isMobileDevice() {
-    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-}
-function isInAppBrowser() {
-    const ua = navigator.userAgent || '';
-    return /FBAN|FBAV|Instagram|Twitter|Line|Messenger|LinkedIn|WhatsApp|Snapchat/i.test(ua);
+    return /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent || '');
 }
 
-// usar sessionStorage (se limpia al cerrar pestaña) para marcar redirect-sí
-const REDIRECT_FLAG = 'fb_auth_redirect_v2';
-
-// Centralizar manejo: un solo listener añadido cuando DOM listo
-document.addEventListener('DOMContentLoaded', () => {
-    const signBtn = document.getElementById('google-signin-btn');
-    if (!signBtn) {
-        console.warn('google-signin-btn no encontrado en DOM — auth no inicializada');
-        return;
-    }
-    // evitar submit si está dentro de un form
-    try { signBtn.type = 'button'; } catch (e) {}
-
-    // procesar posible resultado de redirect (si venimos de signInWithRedirect)
-    (async function handlePossibleRedirect() {
-        try {
-            if (sessionStorage.getItem(REDIRECT_FLAG)) {
-                sessionStorage.removeItem(REDIRECT_FLAG);
-                console.log('Auth: procesando getRedirectResult...');
-                const result = await getRedirectResult(auth);
-                if (result && result.user) {
-                    console.log('Auth: usuario desde redirect ->', result.user.email || result.user.uid);
-                    // onAuthStateChanged actualizará UI y cargará datos
-                } else {
-                    console.log('Auth: getRedirectResult no devolvió usuario');
-                }
-            } else {
-                console.log('Auth: no hay flag de redirect');
-            }
-        } catch (err) {
-            // ignorar el "no-auth-event" ruidoso y otros errores esperables
-            if (err && err.code !== 'auth/no-auth-event') {
-                console.error('Error en getRedirectResult:', err);
-            }
+document.getElementById('google-signin-btn').addEventListener('click', async () => {
+    try {
+        if (isMobileDevice()) {
+            // en móviles usar redirect (más fiable que popup)
+            await signInWithRedirect(auth, provider);
+        } else {
+            // en escritorio intentar popup
+            await signInWithPopup(auth, provider);
         }
-    })();
-
-    signBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        console.log('Auth: click -> isMobile:', isMobileDevice(), 'inApp:', isInAppBrowser());
-        try {
-            // si es móvil o in-app usamos redirect (más fiable)
-            if (isMobileDevice() || isInAppBrowser()) {
-                sessionStorage.setItem(REDIRECT_FLAG, '1');
+    } catch (error) {
+        console.error('Error al iniciar sesión:', error);
+        // Si el popup fue bloqueado o cancelado, fallback a redirect
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+            try {
                 await signInWithRedirect(auth, provider);
                 return;
+            } catch (err) {
+                console.error('Fallback a redirect falló:', err);
+                alert('Error al iniciar sesión: ' + err.message);
+                return;
             }
-
-            // escritorio: intentar popup, fallback a redirect
-            try {
-                console.log('Auth: intentando signInWithPopup');
-                const result = await signInWithPopup(auth, provider);
-                console.log('Auth: signInWithPopup OK ->', result.user && result.user.email);
-                // no recargar la página; onAuthStateChanged actualizará la UI
-            } catch (popupErr) {
-                console.warn('Auth: popup falló o bloqueado, usando redirect como fallback', popupErr);
-                sessionStorage.setItem(REDIRECT_FLAG, '1');
-                await signInWithRedirect(auth, provider);
-            }
-        } catch (error) {
-            console.error('Error en click handler de auth:', error);
-            alert('Error al iniciar sesión: ' + (error && (error.message || error.code) || error));
         }
-    });
+        alert('Error al iniciar sesión: ' + (error.message || error));
+    }
 });
 
-// manejar estado de auth una única vez
+// Manejar resultado cuando se vuelve del redirect (importante en móviles)
+(async function handleRedirectResult() {
+    try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+            console.log('Sesión iniciada vía redirect:', result.user.email);
+            // onAuthStateChanged también se ejecutará; no es necesario hacer más aquí
+        }
+    } catch (err) {
+        // evitar spam de mensajes si no hay evento de auth
+        if (err && err.code !== 'auth/no-auth-event') {
+            console.error('Error al procesar redirect result:', err);
+        }
+    }
+})();
+
 onAuthStateChanged(auth, (user) => {
-    currentUser = user;
     if (user) {
-        console.log('onAuthStateChanged: usuario conectado ->', user.email || user.uid);
-        // evitar recargas forzadas: sólo actualizar UI y cargar datos
-        const loginModal = document.getElementById('login-modal');
-        if (loginModal) loginModal.style.display = 'none';
+        currentUser = user;
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-panel').style.display = 'block';
+        document.getElementById('user-email').textContent = user.email;
+        
         loadCurrentSection();
     } else {
-        console.log('onAuthStateChanged: ningún usuario conectado');
-        // mostrar pantalla de login si existe
-        const loginModal = document.getElementById('login-modal');
-        if (loginModal) loginModal.style.display = 'block';
+        currentUser = null;
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('main-panel').style.display = 'none';
     }
 });
 
