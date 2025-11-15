@@ -16,9 +16,7 @@ import {
     onAuthStateChanged,
     signInWithPopup,
     GoogleAuthProvider,
-    signOut,
-    signInWithRedirect,
-    getRedirectResult
+    signOut
 } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
 
 // Configuración de Firebase
@@ -71,51 +69,22 @@ function parseDateDDMMYYYY(dateStr) {
 
 // ==================== AUTENTICACIÓN ====================
 
-function isMobileDevice() {
-    return /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent || '');
-}
-
 document.getElementById('google-signin-btn').addEventListener('click', async () => {
     try {
-        if (isMobileDevice()) {
-            // en móviles usar redirect (más fiable que popup)
-            await signInWithRedirect(auth, provider);
-        } else {
-            // en escritorio intentar popup
-            await signInWithPopup(auth, provider);
-        }
+        await signInWithPopup(auth, provider);
     } catch (error) {
         console.error('Error al iniciar sesión:', error);
-        // Si el popup fue bloqueado o cancelado, fallback a redirect
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-            try {
-                await signInWithRedirect(auth, provider);
-                return;
-            } catch (err) {
-                console.error('Fallback a redirect falló:', err);
-                alert('Error al iniciar sesión: ' + err.message);
-                return;
-            }
-        }
-        alert('Error al iniciar sesión: ' + (error.message || error));
+        alert('Error al iniciar sesión: ' + error.message);
     }
 });
 
-// Manejar resultado cuando se vuelve del redirect (importante en móviles)
-(async function handleRedirectResult() {
+document.getElementById('signout-btn').addEventListener('click', async () => {
     try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-            console.log('Sesión iniciada vía redirect:', result.user.email);
-            // onAuthStateChanged también se ejecutará; no es necesario hacer más aquí
-        }
-    } catch (err) {
-        // evitar spam de mensajes si no hay evento de auth
-        if (err && err.code !== 'auth/no-auth-event') {
-            console.error('Error al procesar redirect result:', err);
-        }
+        await signOut(auth);
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
     }
-})();
+});
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
