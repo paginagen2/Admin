@@ -983,3 +983,42 @@ function correctLyricsChords(text) {
         return corrected.join(' ');
     }).join('\n');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const signBtn = document.getElementById('google-signin-btn');
+    if (!signBtn) {
+        console.error('google-signin-btn no encontrado en el DOM');
+        return;
+    }
+
+    // Evitar que el botón actúe como submit si está dentro de un form
+    try { signBtn.type = 'button'; } catch (e) {}
+
+    signBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        console.log('Auth: click en botón (isMobile, inApp):', isMobileDevice(), isInAppBrowser());
+        try {
+            // marcar que vamos a redirect para procesarlo luego
+            localStorage.setItem(REDIRECT_FLAG, '1');
+
+            if (isMobileDevice() || isInAppBrowser()) {
+                console.log('Auth: usando signInWithRedirect (mobile/in-app)');
+                await signInWithRedirect(auth, provider);
+                return;
+            }
+
+            // en escritorio intentar popup y fallback a redirect
+            try {
+                console.log('Auth: intentando signInWithPopup');
+                const result = await signInWithPopup(auth, provider);
+                console.log('Auth: signInWithPopup OK ->', result.user && result.user.email);
+            } catch (popupErr) {
+                console.warn('Auth: popup falló, fallback a redirect', popupErr);
+                await signInWithRedirect(auth, provider);
+            }
+        } catch (error) {
+            console.error('Error al iniciar sesión (click handler):', error);
+            alert('Error al iniciar sesión: ' + (error.message || error.code || error));
+        }
+    });
+});
