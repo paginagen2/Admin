@@ -42,19 +42,23 @@
             </div>
         </header>
 
-        <!-- Navegación -->
+        <!-- Navegación (Pasapalabra primero) -->
         <nav class="section-nav">
-            <button class="nav-btn active" data-section="cancionero">
+            <button class="nav-btn active" data-section="pasapalabra">
+                <span class="nav-icon">✨</span>
+                <span class="nav-text">Pasapalabra</span>
+            </button>
+            <button class="nav-btn" data-section="meditaciones">
+                <span class="nav-icon">🧘</span>
+                <span class="nav-text">Meditaciones</span>
+            </button>
+            <button class="nav-btn" data-section="cancionero">
                 <span class="nav-icon">🎸</span>
                 <span class="nav-text">Cancionero</span>
             </button>
             <button class="nav-btn" data-section="recursos">
                 <span class="nav-icon">📚</span>
                 <span class="nav-text">Recursos</span>
-            </button>
-            <button class="nav-btn" data-section="pasapalabra">
-                <span class="nav-icon">✨</span>
-                <span class="nav-text">Pasapalabra</span>
             </button>
             <button class="nav-btn" data-section="frases">
                 <span class="nav-icon">💭</span>
@@ -68,8 +72,100 @@
 
         <!-- Contenedor de Secciones -->
         <main class="main-content">
+            <!-- SECCIÓN PASAPALABRA (movida al inicio) -->
+            <section id="pasapalabra-section" class="content-section active">
+                <div class="section-grid">
+                    <div class="form-panel">
+                        <h2>➕ Agregar Pasapalabra</h2>
+                        <div class="form-group">
+                            <label>Pega el texto completo aquí</label>
+                            <textarea id="pasapalabra-raw" rows="8" placeholder="Pega el texto con fecha, título y reflexión..."></textarea>
+                        </div>
+                        <button type="button" id="pasapalabra-process" class="btn-process">⚡ Procesar Texto</button>
+                        <button type="button" id="pasapalabra-process-save" class="btn-primary" style="margin-top:8px;">⚡ Procesar y Guardar Reflexión</button>
+
+                        <div class="separator"></div>
+
+                        <form id="pasapalabra-form">
+                            <div class="form-group">
+                                <label>Fecha (DD/MM/AAAA) *</label>
+                                <input type="text" id="pasapalabra-fecha" placeholder="11/11/2025" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Título *</label>
+                                <input type="text" id="pasapalabra-titulo" placeholder="Título de la reflexión" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Reflexión *</label>
+                                <textarea id="pasapalabra-reflexion" rows="8" placeholder="Contenido de la reflexión..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn-primary">💾 Guardar Reflexión</button>
+                        </form>
+                    </div>
+
+                    <div class="list-panel">
+                        <h2>✨ Reflexiones Guardadas</h2>
+                        <div class="controls">
+                            <input type="text" id="pasapalabra-search" placeholder="🔍 Buscar por fecha o título...">
+                        </div>
+                        <div id="pasapalabra-list" class="reflexion-list"></div>
+                    </div>
+                </div>
+            </section>
+            <!-- SECCIÓN MEDITACIONES (entre Pasapalabra y Cancionero) -->
+            <section id="meditaciones-section" class="content-section">
+                <div class="section-grid">
+                    <div class="form-panel">
+                        <h2>🧘 Meditaciones</h2>
+                        <div class="form-group">
+                            <label>Título *</label>
+                            <input type="text" id="meditacion-titulo" placeholder="Título de la meditación" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Contenido *</label>
+                            <textarea id="meditacion-contenido" rows="6" placeholder="Texto principal de la meditación" required></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Libro</label>
+                                <input type="text" id="meditacion-libro" placeholder="Ej: Libro X">
+                            </div>
+                            <div class="form-group">
+                                <label>Página</label>
+                                <input type="text" id="meditacion-pagina" placeholder="Ej: 45">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Autor</label>
+                                <input type="text" id="meditacion-autor" placeholder="Nombre del autor">
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción</label>
+                                <input type="text" id="meditacion-descripcion" placeholder="Breve descripción">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button id="meditacion-save-btn" class="btn-primary">💾 Guardar Meditación</button>
+                            <button type="button" id="meditacion-cancel" class="btn-secondary" style="display:none;margin-left:8px;">Cancelar</button>
+                            <button type="button" id="meditacion-delete" class="btn-danger" style="display:none;margin-left:8px;">🗑️ Eliminar</button>
+                        </div>
+
+                        <div class="separator" style="margin:12px 0"></div>
+                    </div>
+
+                    <div class="list-panel">
+                        <h2>🧘 Meditaciones Cargadas</h2>
+                        <div class="controls">
+                            <input type="text" id="meditacion-search" placeholder="🔍 Buscar por título...">
+                        </div>
+                        <div id="meditacion-list" class="item-list"></div>
+                    </div>
+                </div>
+            </section>
+
             <!-- SECCIÓN CANCIONERO -->
-            <section id="cancionero-section" class="content-section active">
+            <section id="cancionero-section" class="content-section">
                 <div class="section-grid">
                     <div class="list-panel">
                         <h2>🎸 Canciones</h2>
@@ -228,45 +324,7 @@
                 </div>
             </section>
 
-            <!-- SECCIÓN PASAPALABRA -->
-            <section id="pasapalabra-section" class="content-section">
-                <div class="section-grid">
-                    <div class="form-panel">
-                        <h2>➕ Agregar Pasapalabra</h2>
-                        <div class="form-group">
-                            <label>Pega el texto completo aquí</label>
-                            <textarea id="pasapalabra-raw" rows="8" placeholder="Pega el texto con fecha, título y reflexión..."></textarea>
-                        </div>
-                        <button type="button" id="pasapalabra-process" class="btn-process">⚡ Procesar Texto</button>
-
-                        <div class="separator"></div>
-
-                        <form id="pasapalabra-form">
-                            <div class="form-group">
-                                <label>Fecha (DD/MM/AAAA) *</label>
-                                <input type="text" id="pasapalabra-fecha" placeholder="11/11/2025" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Título *</label>
-                                <input type="text" id="pasapalabra-titulo" placeholder="Título de la reflexión" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Reflexión *</label>
-                                <textarea id="pasapalabra-reflexion" rows="8" placeholder="Contenido de la reflexión..." required></textarea>
-                            </div>
-                            <button type="submit" class="btn-primary">💾 Guardar Reflexión</button>
-                        </form>
-                    </div>
-
-                    <div class="list-panel">
-                        <h2>✨ Reflexiones Guardadas</h2>
-                        <div class="controls">
-                            <input type="text" id="pasapalabra-search" placeholder="🔍 Buscar por fecha o título...">
-                        </div>
-                        <div id="pasapalabra-list" class="reflexion-list"></div>
-                    </div>
-                </div>
-            </section>
+            <!-- (Pasapalabra se muestra primero) -->
 
             <!-- SECCIÓN FRASES -->
             <section id="frases-section" class="content-section">

@@ -37,7 +37,7 @@ const provider = new GoogleAuthProvider();
 
 // Variables globales
 let currentUser = null;
-let currentSection = 'cancionero';
+let currentSection = 'pasapalabra';
 let editingId = null;
 
 // Función para convertir fecha a formato DD/MM/AAAA
@@ -131,6 +131,9 @@ function loadCurrentSection() {
     switch (currentSection) {
         case 'cancionero':
             loadCanciones();
+            break;
+        case 'meditaciones':
+            loadMeditaciones();
             break;
         case 'recursos':
             loadRecursos();
@@ -560,25 +563,25 @@ document.getElementById('pasapalabra-search').addEventListener('input', () => {
     displayPasapalabra(filtered);
 });
 
-document.getElementById('pasapalabra-process').addEventListener('click', () => {
-    const rawText = document.getElementById('pasapalabra-raw').value;
-    const lines = rawText.split('\n').filter(line => line.trim());
-    
+function processPasapalabraRawToForm() {
+    const rawText = document.getElementById('pasapalabra-raw').value || '';
+    const lines = rawText.split('\n').map(l => l.trim()).filter(line => line);
+
     const dateRegex = /\d+\s+de\s+\w+\s+de\s+\d{4}/i;
     const dateLine = lines.find(line => dateRegex.test(line));
     if (dateLine) {
         const formattedDate = convertToDateFormat(dateLine.trim());
         document.getElementById('pasapalabra-fecha').value = formattedDate;
     }
-    
+
     const titleIndex = dateLine ? lines.indexOf(dateLine) + 1 : 0;
     if (titleIndex < lines.length) {
         const potentialTitle = lines[titleIndex];
-        if (potentialTitle === potentialTitle.toUpperCase()) {
+        if (potentialTitle && potentialTitle === potentialTitle.toUpperCase()) {
             document.getElementById('pasapalabra-titulo').value = potentialTitle.trim();
         }
     }
-    
+
     const contentLines = lines.filter(line => {
         const lower = line.toLowerCase();
         return !dateRegex.test(line) &&
@@ -587,9 +590,34 @@ document.getElementById('pasapalabra-process').addEventListener('click', () => {
                !lower.includes('@') &&
                (!lower.match(/^[a-z\s]+$/i) || line.length > 50);
     });
-    
+
     document.getElementById('pasapalabra-reflexion').value = contentLines.join('\n').trim();
+}
+
+document.getElementById('pasapalabra-process').addEventListener('click', () => {
+    processPasapalabraRawToForm();
 });
+
+// Nuevo: procesar y guardar en un solo paso
+const pasProcessSaveBtn = document.getElementById('pasapalabra-process-save');
+if (pasProcessSaveBtn) {
+    pasProcessSaveBtn.addEventListener('click', async () => {
+        try {
+            processPasapalabraRawToForm();
+            // enviar el formulario (dispara el listener de submit existente)
+            const form = document.getElementById('pasapalabra-form');
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                // fallback
+                form.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        } catch (err) {
+            console.error('Error al procesar y guardar pasapalabra:', err);
+            alert('Error al procesar y guardar: ' + (err && err.message));
+        }
+    });
+}
 
 document.getElementById('pasapalabra-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -621,6 +649,180 @@ document.getElementById('pasapalabra-form').addEventListener('submit', async (e)
         alert('❌ Error al guardar la reflexión: ' + error.message);
     }
 });
+
+// ==================== MEDITACIONES ====================
+
+let allMeditaciones = [];
+
+async function loadMeditaciones() {
+    try {
+        const q = query(collection(db, 'meditaciones'), orderBy('titulo'));
+        const querySnapshot = await getDocs(q);
+        allMeditaciones = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        displayMeditaciones(allMeditaciones);
+    } catch (error) {
+        console.error('Error al cargar meditaciones:', error);
+    }
+}
+
+function displayMeditaciones(items) {
+    const list = document.getElementById('meditacion-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!items || items.length === 0) {
+        list.innerHTML = '<div style="color:#666">No hay meditaciones cargadas.</div>';
+        return;
+    }
+    items.forEach(it => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;">
+                <div style="flex:1">
+                    <div class="item-title">${it.titulo}</div>
+                    <div class="item-subtitle">${(it.descripcion||'').substring(0,80)}</div>
+                    <div style="margin-top:6px;color:#444;">${(it.contenido||'').substring(0,140)}...</div>
+                    <div style="margin-top:6px;color:#666;font-size:13px;">${it.autor? 'Autor: '+it.autor : ''} ${it.libro? ' • '+it.libro : ''} ${it.pagina? ' (p. '+it.pagina+')' : ''}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button class="btn-edit-meditacion" data-id="${it.id}">✏️ Editar</button>
+                    <button class="btn-delete-meditacion" data-id="${it.id}">🗑️ Eliminar</button>
+                </div>
+            </div>
+        `;
+        list.appendChild(el);
+    });
+
+    // listeners for edit/delete
+    document.querySelectorAll('.btn-edit-meditacion').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const item = allMeditaciones.find(m => m.id === id);
+            if (item) editMeditacion(item);
+        });
+    });
+    document.querySelectorAll('.btn-delete-meditacion').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            if (!confirm('¿Eliminar esta meditación?')) return;
+            try {
+                await deleteDoc(doc(db, 'meditaciones', id));
+                alert('✅ Meditación eliminada');
+                if (editingId === id) resetMeditacionForm();
+                loadMeditaciones();
+            } catch (err) {
+                console.error('Error al eliminar meditación:', err);
+                alert('❌ Error al eliminar');
+            }
+        });
+    });
+}
+
+// Guardar una meditación individual
+const medSaveBtn = document.getElementById('meditacion-save-btn');
+if (medSaveBtn) {
+    medSaveBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (!currentUser) { alert('Inicia sesión primero'); return; }
+        const titulo = (document.getElementById('meditacion-titulo').value || '').trim();
+        const contenido = (document.getElementById('meditacion-contenido').value || '').trim();
+        if (!titulo || !contenido) { alert('Completa título y contenido'); return; }
+        const libro = (document.getElementById('meditacion-libro').value || '').trim();
+        const pagina = (document.getElementById('meditacion-pagina').value || '').trim();
+        const autor = (document.getElementById('meditacion-autor').value || '').trim();
+        const descripcion = (document.getElementById('meditacion-descripcion').value || '').trim();
+
+        const data = { titulo, contenido };
+        if (libro) data.libro = libro;
+        if (pagina) data.pagina = pagina;
+        if (autor) data.autor = autor;
+        if (descripcion) data.descripcion = descripcion;
+        try {
+            if (editingId) {
+                // actualizar existente
+                await setDoc(doc(db, 'meditaciones', editingId), data, { merge: true });
+                alert('✅ Meditación actualizada');
+            } else {
+                const id = `meditacion_${Date.now()}`;
+                await setDoc(doc(db, 'meditaciones', id), data);
+                alert('✅ Meditación guardada');
+            }
+            resetMeditacionForm();
+            loadMeditaciones();
+        } catch (err) {
+            console.error('Error al guardar meditación:', err);
+            alert('❌ Error: ' + (err && err.message));
+        }
+    });
+}
+
+// cancelar edición
+const medCancelBtn = document.getElementById('meditacion-cancel');
+if (medCancelBtn) medCancelBtn.addEventListener('click', resetMeditacionForm);
+
+// boton eliminar dentro del formulario
+const medFormDeleteBtn = document.getElementById('meditacion-delete');
+if (medFormDeleteBtn) {
+    medFormDeleteBtn.addEventListener('click', async () => {
+        if (!editingId) return;
+        if (!confirm('¿Eliminar meditación editada?')) return;
+        try {
+            await deleteDoc(doc(db, 'meditaciones', editingId));
+            alert('✅ Meditación eliminada');
+            resetMeditacionForm();
+            loadMeditaciones();
+        } catch (err) {
+            console.error('Error al eliminar meditación:', err);
+            alert('❌ Error al eliminar');
+        }
+    });
+}
+
+function editMeditacion(item) {
+    editingId = item.id;
+    const form = document.getElementById('meditacion-titulo');
+    if (form) form.value = item.titulo || '';
+    document.getElementById('meditacion-contenido').value = item.contenido || '';
+    document.getElementById('meditacion-libro').value = item.libro || '';
+    document.getElementById('meditacion-pagina').value = item.pagina || '';
+    document.getElementById('meditacion-autor').value = item.autor || '';
+    document.getElementById('meditacion-descripcion').value = item.descripcion || '';
+    // mostrar botones de cancelar/eliminar
+    const cancelBtn = document.getElementById('meditacion-cancel');
+    const delBtn = document.getElementById('meditacion-delete');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+    if (delBtn) delBtn.style.display = 'inline-block';
+    // cambiar texto del botón guardar
+    medSaveBtn.textContent = '💾 Actualizar Meditación';
+}
+
+function resetMeditacionForm() {
+    editingId = null;
+    document.getElementById('meditacion-titulo').value = '';
+    document.getElementById('meditacion-contenido').value = '';
+    document.getElementById('meditacion-libro').value = '';
+    document.getElementById('meditacion-pagina').value = '';
+    document.getElementById('meditacion-autor').value = '';
+    document.getElementById('meditacion-descripcion').value = '';
+    const cancelBtn = document.getElementById('meditacion-cancel');
+    const delBtn = document.getElementById('meditacion-delete');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (delBtn) delBtn.style.display = 'none';
+    medSaveBtn.textContent = '💾 Guardar Meditación';
+}
+
+// Buscador de meditaciones
+const medSearch = document.getElementById('meditacion-search');
+if (medSearch) {
+    medSearch.addEventListener('input', () => {
+        const q = medSearch.value.trim().toLowerCase();
+        if (!q) return displayMeditaciones(allMeditaciones);
+        const filtered = allMeditaciones.filter(m => (m.titulo||'').toLowerCase().includes(q));
+        displayMeditaciones(filtered);
+    });
+}
+
+// (Subida masiva eliminada) bulk upload removed
 
 // ==================== FRASES ====================
 
