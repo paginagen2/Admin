@@ -1218,9 +1218,9 @@ function initBulkUpload() {
         for (const item of items) {
             let parts;
             if (type === 'meditaciones') {
-                parts = item.split('}{').map(part => part.replace(/[{}]/g, '').trim());
+                parts = item.split('}{').map(part => part.replace(/[\[\]{}]/g, '').trim());
             } else {
-                parts = item.split('}{').map(part => part.replace(/[{}]/g, '').trim());
+                parts = item.split('}{').map(part => part.replace(/[\[\]{}]/g, '').trim());
             }
             if (parts.length < config.fields.length - 1) { // permitir opcional descripción
                 console.warn(`Entrada inválida: ${item}`);
@@ -1228,27 +1228,27 @@ function initBulkUpload() {
                 continue;
             }
 
-            const item = {};
+            const itemData = {};
             config.fields.forEach((field, index) => {
                 if (parts[index]) {
                     if (field === 'materiales' || field === 'pasos') {
-                        item[field] = parts[index].split('\n').map(s => s.trim()).filter(s => s);
+                        itemData[field] = parts[index].split('\n').map(s => s.trim()).filter(s => s);
                     } else {
-                        item[field] = parts[index];
+                        itemData[field] = parts[index];
                     }
                 }
             });
 
             // Agregar campos comunes
-            item.fechaCreacion = serverTimestamp();
-            item.activa = true;
+            itemData.fechaCreacion = serverTimestamp();
+            itemData.activa = true;
             if (type === 'cancionero') {
-                item.reproducciones = 0;
+                itemData.reproducciones = 0;
             }
 
             try {
                 const id = `${config.collection}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                await setDoc(doc(db, config.collection, id), item);
+                await setDoc(doc(db, config.collection, id), itemData);
                 successCount++;
             } catch (error) {
                 console.error('Error al subir:', error);
