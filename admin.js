@@ -147,6 +147,9 @@ function loadCurrentSection() {
         case 'lyrics':
             initLyricsCorrector();
             break;
+        case 'bulk-upload':
+            initBulkUpload();
+            break;
         default:
             break;
     }
@@ -1123,4 +1126,126 @@ function correctLyricsChords(text) {
         });
         return corrected.join(' ');
     }).join('\n');
+}
+
+// ==================== SUBIDA MÚLTIPLE ====================
+
+const bulkConfigs = {
+    meditaciones: {
+        syntax: "Título | Contenido | Libro | Página | Autor | Descripción (opcional)",
+        example: "Mi Meditación | Este es el contenido de la meditación... | Libro 1 | 45 | Autor X | Descripción opcional",
+        fields: ['titulo', 'contenido', 'libro', 'pagina', 'autor', 'descripcion'],
+        collection: 'meditaciones'
+    },
+    pasapalabra: {
+        syntax: "Fecha (DD/MM/AAAA) | Título | Reflexión",
+        example: "11/11/2025 | Título de la reflexión | Contenido de la reflexión...",
+        fields: ['fecha', 'titulo', 'reflexion'],
+        collection: 'pasapalabra'
+    },
+    cancionero: {
+        syntax: "Título | Artista | Categoría (misa/gen/fogon) | Estado (pendiente/publicado/rechazado) | Letra",
+        example: "Canción Ejemplo | Artista X | misa | pendiente | [C]Letra de la canción...",
+        fields: ['titulo', 'artista', 'categoria', 'estado', 'letra'],
+        collection: 'cancionero'
+    },
+    recursos: {
+        syntax: "Título | Categoría (dinamicas/juegos/reflexiones/retiros) | Estado (pendiente/publicado/rechazado) | Descripción | Objetivo | Duración | Participantes | Materiales (uno por línea) | Pasos (uno por línea) | Autor",
+        example: "Recurso Ejemplo | dinamicas | pendiente | Descripción breve | Objetivo del recurso | 30 minutos | 10-15 personas | Material 1\nMaterial 2 | Paso 1: ...\nPaso 2: ... | Autor X",
+        fields: ['titulo', 'categoria', 'estado', 'descripcion', 'objetivo', 'duracion', 'participantes', 'materiales', 'pasos', 'autor'],
+        collection: 'recursos'
+    },
+    frases: {
+        syntax: "Frase | Autor",
+        example: "Esta es una frase inspiradora | Autor Y",
+        fields: ['texto', 'autor'],
+        collection: 'frases'
+    }
+};
+
+function initBulkUpload() {
+    if (window.bulkUploadInit) return;
+    window.bulkUploadInit = true;
+
+    const select = document.getElementById('bulk-type-select');
+    const syntaxDiv = document.getElementById('bulk-syntax');
+    const syntaxText = document.getElementById('bulk-syntax-text');
+    const exampleDiv = document.getElementById('bulk-example');
+    const exampleText = document.getElementById('bulk-example-text');
+    const dataTextarea = document.getElementById('bulk-data');
+    const uploadBtn = document.getElementById('bulk-upload-btn');
+
+    select.addEventListener('change', () => {
+        const type = select.value;
+        if (type && bulkConfigs[type]) {
+            const config = bulkConfigs[type];
+            syntaxText.textContent = config.syntax;
+            exampleText.textContent = config.example;
+            syntaxDiv.style.display = 'block';
+            exampleDiv.style.display = 'block';
+        } else {
+            syntaxDiv.style.display = 'none';
+            exampleDiv.style.display = 'none';
+        }
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+        const type = select.value;
+        if (!type || !bulkConfigs[type]) {
+            alert('Selecciona un tipo de datos válido.');
+            return;
+        }
+
+        const data = dataTextarea.value.trim();
+        if (!data) {
+            alert('Ingresa los datos a subir.');
+            return;
+        }
+
+        const config = bulkConfigs[type];
+        const lines = data.split('\n').map(line => line.trim()).filter(line => line);
+
+        if (lines.length === 0) {
+            alert('No hay líneas válidas para procesar.');
+            return;
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const line of lines) {
+            const parts = line.split('|').map(part => part.trim());
+            if (parts.length < config.fields.length - 1) { // permitir opcional descripción
+                console.warn(`Línea inválida: ${line}`);
+                errorCount++;
+                continue;
+            }
+
+            const item = {};
+            config.fields.forEach((field, index) => {
+                if (parts[index]) {
+                    if (field === 'materiales' || field === 'pasos') {
+                        item[field] = parts[index].split('\n').map(s => s.trim()).filter(s => s);
+                    } else {
+                        item[field] = parts[index];
+                    }
+                }
+            });
+
+            // Agregar timestamp
+            item.fechaCreacion = serverTimestamp();
+
+            try {
+                const id = `${config.collection}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                await setDoc(doc(db, config.collection, id), item);
+                successCount++;
+            } catch (error) {
+                console.error('Error al subir:', error);
+                errorCount++;
+            }
+        }
+
+        alert(`Subida completada: ${successCount} exitosas, ${errorCount} errores.`);
+        dataTextarea.value = '';
+    });
 }
