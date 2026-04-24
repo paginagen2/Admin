@@ -1132,37 +1132,37 @@ function correctLyricsChords(text) {
 
 const bulkConfigs = {
     meditaciones: {
-        syntax: "{titulo}{contenido}{libro}{pagina}{autor}{descripcion}",
-        example: "{Mi Meditación}{Este es el contenido de la meditación...}{Libro 1}{45}{Autor X}{}",
-        description: "Sintaxis: {titulo}{contenido}{libro}{pagina}{autor}{descripcion}\nEjemplo: {Mi Meditación}{Este es el contenido de la meditación...}{Libro 1}{45}{Autor X}{}",
+        syntax: "[{titulo}{contenido}{libro}{pagina}{autor}{descripcion}]",
+        example: "[{Mi Meditación}{Este es el contenido\nde la meditación...}{Libro 1}{45}{Autor X}{}]",
+        description: "Sintaxis: [{titulo}{contenido}{libro}{pagina}{autor}{descripcion}]\nEjemplo: [{Mi Meditación}{Este es el contenido\nde la meditación...}{Libro 1}{45}{Autor X}{}]\nCada meditación entre [ ] permite saltos de línea dentro de los campos.",
         fields: ['titulo', 'contenido', 'libro', 'pagina', 'autor', 'descripcion'],
         collection: 'meditaciones'
     },
     pasapalabra: {
-        syntax: "{fecha}{titulo}{reflexion}",
-        example: "{11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}",
-        description: "Sintaxis: {fecha}{titulo}{reflexion}\nEjemplo: {11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}",
+        syntax: "[{fecha}{titulo}{reflexion}]",
+        example: "[{11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}]",
+        description: "Sintaxis: [{fecha}{titulo}{reflexion}]\nEjemplo: [{11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}]",
         fields: ['fecha', 'titulo', 'reflexion'],
         collection: 'pasapalabra'
     },
     cancionero: {
-        syntax: "{titulo}{artista}{categoria}{estado}{letra}",
-        example: "{Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}",
-        description: "Sintaxis: {titulo}{artista}{categoria}{estado}{letra}\nEjemplo: {Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}\nCategorías: misa, gen, fogon. Estados: pendiente, publicado, rechazado.",
+        syntax: "[{titulo}{artista}{categoria}{estado}{letra}]",
+        example: "[{Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}]",
+        description: "Sintaxis: [{titulo}{artista}{categoria}{estado}{letra}]\nEjemplo: [{Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}]\nCategorías: misa, gen, fogon. Estados: pendiente, publicado, rechazado.",
         fields: ['titulo', 'artista', 'categoria', 'estado', 'letra'],
         collection: 'cancionero'
     },
     recursos: {
-        syntax: "{titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}",
-        example: "{Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}",
-        description: "Sintaxis: {titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}\nEjemplo: {Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}\nCategorías: dinamicas, juegos, reflexiones, retiros. Estados: pendiente, publicado, rechazado.",
+        syntax: "[{titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}]",
+        example: "[{Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}]",
+        description: "Sintaxis: [{titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}]\nEjemplo: [{Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}]\nCategorías: dinamicas, juegos, reflexiones, retiros. Estados: pendiente, publicado, rechazado.",
         fields: ['titulo', 'categoria', 'estado', 'descripcion', 'objetivo', 'duracion', 'participantes', 'materiales', 'pasos', 'autor'],
         collection: 'recursos'
     },
     frases: {
-        syntax: "{texto}{autor}",
-        example: "{Esta es una frase inspiradora}{Autor Y}",
-        description: "Sintaxis: {texto}{autor}\nEjemplo: {Esta es una frase inspiradora}{Autor Y}",
+        syntax: "[{texto}{autor}]",
+        example: "[{Esta es una frase inspiradora}{Autor Y}]",
+        description: "Sintaxis: [{texto}{autor}]\nEjemplo: [{Esta es una frase inspiradora}{Autor Y}]",
         fields: ['texto', 'autor'],
         collection: 'frases'
     }
@@ -1203,20 +1203,27 @@ function initBulkUpload() {
         }
 
         const config = bulkConfigs[type];
-        const lines = data.split('\n').map(line => line.trim()).filter(line => line);
+        const regex = /\[([^\]]*)\]/g;
+        const matches = [...data.matchAll(regex)];
+        const items = matches.map(match => match[1]);
 
-        if (lines.length === 0) {
-            alert('No hay líneas válidas para procesar.');
+        if (items.length === 0) {
+            alert('No hay entradas válidas encontradas. Asegúrate de que cada entrada esté entre [ ].');
             return;
         }
 
         let successCount = 0;
         let errorCount = 0;
 
-        for (const line of lines) {
-            const parts = line.split('}{').map(part => part.replace(/[{}]/g, '').trim());
+        for (const item of items) {
+            let parts;
+            if (type === 'meditaciones') {
+                parts = item.split('}{').map(part => part.replace(/[{}]/g, '').trim());
+            } else {
+                parts = item.split('}{').map(part => part.replace(/[{}]/g, '').trim());
+            }
             if (parts.length < config.fields.length - 1) { // permitir opcional descripción
-                console.warn(`Línea inválida: ${line}`);
+                console.warn(`Entrada inválida: ${item}`);
                 errorCount++;
                 continue;
             }
