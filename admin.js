@@ -622,28 +622,6 @@ if (pasProcessSaveBtn) {
     });
 }
 
-// Botón para pegar del portapapeles, procesar y guardar
-const pasPasteProcessSaveBtn = document.getElementById('pasapalabra-paste-process-save');
-if (pasPasteProcessSaveBtn) {
-    pasPasteProcessSaveBtn.addEventListener('click', async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            document.getElementById('pasapalabra-raw').value = text;
-            // Luego procesar y guardar
-            processPasapalabraRawToForm();
-            const form = document.getElementById('pasapalabra-form');
-            if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit();
-            } else {
-                form.dispatchEvent(new Event('submit', { cancelable: true }));
-            }
-        } catch (err) {
-            console.error('Error al pegar del portapapeles:', err);
-            alert('Error al pegar del portapapeles: ' + (err && err.message));
-        }
-    });
-}
-
 document.getElementById('pasapalabra-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -1154,37 +1132,37 @@ function correctLyricsChords(text) {
 
 const bulkConfigs = {
     meditaciones: {
-        syntax: "Título | Contenido | Libro | Página | Autor | Descripción (opcional)",
-        example: "Mi Meditación | Este es el contenido de la meditación... | Libro 1 | 45 | Autor X | Descripción opcional",
-        description: "Envía una foto de las meditaciones a una IA (como ChatGPT) y pídele que las convierta a líneas de texto separadas por '|', usando este formato: Título | Contenido | Libro | Página | Autor | Descripción (opcional). Cada meditación en una línea.",
+        syntax: "{titulo}{contenido}{libro}{pagina}{autor}{descripcion}",
+        example: "{Mi Meditación}{Este es el contenido de la meditación...}{Libro 1}{45}{Autor X}{}",
+        description: "Sintaxis: {titulo}{contenido}{libro}{pagina}{autor}{descripcion}\nEjemplo: {Mi Meditación}{Este es el contenido de la meditación...}{Libro 1}{45}{Autor X}{}",
         fields: ['titulo', 'contenido', 'libro', 'pagina', 'autor', 'descripcion'],
         collection: 'meditaciones'
     },
     pasapalabra: {
-        syntax: "Fecha (DD/MM/AAAA) | Título | Reflexión",
-        example: "11/11/2025 | Título de la reflexión | Contenido de la reflexión...",
-        description: "Envía una foto de las reflexiones de pasapalabra a una IA y pídele que las convierta a líneas con: Fecha | Título | Reflexión. Cada reflexión en una línea.",
+        syntax: "{fecha}{titulo}{reflexion}",
+        example: "{11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}",
+        description: "Sintaxis: {fecha}{titulo}{reflexion}\nEjemplo: {11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}",
         fields: ['fecha', 'titulo', 'reflexion'],
         collection: 'pasapalabra'
     },
     cancionero: {
-        syntax: "Título | Artista | Categoría (misa/gen/fogon) | Estado (pendiente/publicado/rechazado) | Letra",
-        example: "Canción Ejemplo | Artista X | misa | pendiente | [C]Letra de la canción...",
-        description: "Envía una foto de las canciones a una IA y pídele que las convierta a: Título | Artista | Categoría | Estado | Letra. Categorías: misa, gen, fogon. Estados: pendiente, publicado, rechazado.",
+        syntax: "{titulo}{artista}{categoria}{estado}{letra}",
+        example: "{Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}",
+        description: "Sintaxis: {titulo}{artista}{categoria}{estado}{letra}\nEjemplo: {Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}\nCategorías: misa, gen, fogon. Estados: pendiente, publicado, rechazado.",
         fields: ['titulo', 'artista', 'categoria', 'estado', 'letra'],
         collection: 'cancionero'
     },
     recursos: {
-        syntax: "Título | Categoría (dinamicas/juegos/reflexiones/retiros) | Estado (pendiente/publicado/rechazado) | Descripción | Objetivo | Duración | Participantes | Materiales (uno por línea) | Pasos (uno por línea) | Autor",
-        example: "Recurso Ejemplo | dinamicas | pendiente | Descripción breve | Objetivo del recurso | 30 minutos | 10-15 personas | Material 1\nMaterial 2 | Paso 1: ...\nPaso 2: ... | Autor X",
-        description: "Envía una foto de los recursos a una IA y pídele que los convierta a: Título | Categoría | Estado | Descripción | Objetivo | Duración | Participantes | Materiales | Pasos | Autor. Materiales y Pasos separados por saltos de línea.",
+        syntax: "{titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}",
+        example: "{Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}",
+        description: "Sintaxis: {titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}\nEjemplo: {Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}\nCategorías: dinamicas, juegos, reflexiones, retiros. Estados: pendiente, publicado, rechazado.",
         fields: ['titulo', 'categoria', 'estado', 'descripcion', 'objetivo', 'duracion', 'participantes', 'materiales', 'pasos', 'autor'],
         collection: 'recursos'
     },
     frases: {
-        syntax: "Frase | Autor",
-        example: "Esta es una frase inspiradora | Autor Y",
-        description: "Envía una foto de las frases a una IA y pídele que las convierta a: Frase | Autor. Cada frase en una línea.",
+        syntax: "{texto}{autor}",
+        example: "{Esta es una frase inspiradora}{Autor Y}",
+        description: "Sintaxis: {texto}{autor}\nEjemplo: {Esta es una frase inspiradora}{Autor Y}",
         fields: ['texto', 'autor'],
         collection: 'frases'
     }
@@ -1195,10 +1173,6 @@ function initBulkUpload() {
     window.bulkUploadInit = true;
 
     const select = document.getElementById('bulk-type-select');
-    const syntaxDiv = document.getElementById('bulk-syntax');
-    const syntaxText = document.getElementById('bulk-syntax-text');
-    const exampleDiv = document.getElementById('bulk-example');
-    const exampleText = document.getElementById('bulk-example-text');
     const descriptionDiv = document.getElementById('bulk-description');
     const descriptionText = document.getElementById('bulk-description-text');
     const dataTextarea = document.getElementById('bulk-data');
@@ -1208,15 +1182,9 @@ function initBulkUpload() {
         const type = select.value;
         if (type && bulkConfigs[type]) {
             const config = bulkConfigs[type];
-            syntaxText.textContent = config.syntax;
-            exampleText.textContent = config.example;
             descriptionText.textContent = config.description;
-            syntaxDiv.style.display = 'block';
-            exampleDiv.style.display = 'block';
             descriptionDiv.style.display = 'block';
         } else {
-            syntaxDiv.style.display = 'none';
-            exampleDiv.style.display = 'none';
             descriptionDiv.style.display = 'none';
         }
     });
@@ -1246,7 +1214,7 @@ function initBulkUpload() {
         let errorCount = 0;
 
         for (const line of lines) {
-            const parts = line.split('|').map(part => part.trim());
+            const parts = line.split('}{').map(part => part.replace(/[{}]/g, '').trim());
             if (parts.length < config.fields.length - 1) { // permitir opcional descripción
                 console.warn(`Línea inválida: ${line}`);
                 errorCount++;
