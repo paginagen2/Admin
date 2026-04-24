@@ -68,6 +68,10 @@
                 <span class="nav-icon">🎼</span>
                 <span class="nav-text">Corrección Letras</span>
             </button>
+            <button class="nav-btn" data-section="bulk-upload">
+                <span class="nav-icon">📤</span>
+                <span class="nav-text">Subida Múltiple</span>
+            </button>
         </nav>
 
         <!-- Contenedor de Secciones -->
@@ -380,6 +384,39 @@
                             <textarea id="lyrics-output" rows="10" style="width:100%;font-family:monospace;padding:10px;"></textarea>
                         </div>
                         <p style="color:#555;font-size:13px;margin-top:8px;">Nota: el algoritmo detecta líneas compuestas mayormente por tokens de acordes y las envuelve en corchetes; también intenta envolver acordes inline aislados.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN SUBIDA MÚLTIPLE -->
+            <section id="bulk-upload-section" class="content-section">
+                <div class="section-grid">
+                    <div class="form-panel" style="grid-column: 1 / -1;">
+                        <h2>📤 Subida Múltiple de Datos</h2>
+                        <div class="form-group">
+                            <label>Seleccionar tipo de datos *</label>
+                            <select id="bulk-type-select" required>
+                                <option value="">Selecciona...</option>
+                                <option value="meditaciones">🧘 Meditaciones</option>
+                                <option value="pasapalabra">✨ Pasapalabras</option>
+                                <option value="cancionero">🎸 Cancionero</option>
+                                <option value="recursos">📚 Recursos</option>
+                                <option value="frases">💭 Frases</option>
+                            </select>
+                        </div>
+                        <div id="bulk-syntax" class="form-group" style="display:none;">
+                            <label>Sintaxis necesaria:</label>
+                            <pre id="bulk-syntax-text"></pre>
+                        </div>
+                        <div id="bulk-example" class="form-group" style="display:none;">
+                            <label>Ejemplo:</label>
+                            <pre id="bulk-example-text"></pre>
+                        </div>
+                        <div class="form-group">
+                            <label>Datos a subir (cada entrada en una línea separada)</label>
+                            <textarea id="bulk-data" rows="10" placeholder="Pega aquí los datos, uno por línea..."></textarea>
+                        </div>
+                        <button id="bulk-upload-btn" class="btn-primary">📤 Subir Datos</button>
                     </div>
                 </div>
             </section>
