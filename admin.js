@@ -1132,37 +1132,37 @@ function correctLyricsChords(text) {
 
 const bulkConfigs = {
     meditaciones: {
-        syntax: "[{titulo}{contenido}{libro}{pagina}{autor}{descripcion}]",
-        example: "[{Mi Meditación}{Este es el contenido\nde la meditación...}{Libro 1}{45}{Autor X}{}]",
-        description: "Sintaxis: [{titulo}{contenido}{libro}{pagina}{autor}{descripcion}]\nEjemplo: [{Mi Meditación}{Este es el contenido\nde la meditación...}{Libro 1}{45}{Autor X}{}]\nCada meditación entre [ ] permite saltos de línea dentro de los campos.",
+        syntax: '[{"titulo": "Título", "contenido": "Contenido...", "libro": "Libro", "pagina": "Página", "autor": "Autor", "descripcion": "Descripción"}]',
+        example: '[{"titulo": "Mi Meditación", "contenido": "Este es el contenido\nde la meditación...", "libro": "Libro 1", "pagina": "45", "autor": "Autor X", "descripcion": ""}]',
+        description: 'Sintaxis: [{"titulo": "...", "contenido": "...", "libro": "...", "pagina": "...", "autor": "...", "descripcion": "..."}]\nEjemplo: [{"titulo": "Mi Meditación", "contenido": "Este es el contenido\nde la meditación...", "libro": "Libro 1", "pagina": "45", "autor": "Autor X", "descripcion": ""}]\nPega un array JSON válido.',
         fields: ['titulo', 'contenido', 'libro', 'pagina', 'autor', 'descripcion'],
         collection: 'meditaciones'
     },
     pasapalabra: {
-        syntax: "[{fecha}{titulo}{reflexion}]",
-        example: "[{11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}]",
-        description: "Sintaxis: [{fecha}{titulo}{reflexion}]\nEjemplo: [{11/11/2025}{Título de la reflexión}{Contenido de la reflexión...}]",
+        syntax: '[{"fecha": "DD/MM/AAAA", "titulo": "Título", "reflexion": "Reflexión"}]',
+        example: '[{"fecha": "11/11/2025", "titulo": "Título de la reflexión", "reflexion": "Contenido de la reflexión..."}]',
+        description: 'Sintaxis: [{"fecha": "...", "titulo": "...", "reflexion": "..."}]\nEjemplo: [{"fecha": "11/11/2025", "titulo": "Título de la reflexión", "reflexion": "Contenido de la reflexión..."}]\nPega un array JSON válido.',
         fields: ['fecha', 'titulo', 'reflexion'],
         collection: 'pasapalabra'
     },
     cancionero: {
-        syntax: "[{titulo}{artista}{categoria}{estado}{letra}]",
-        example: "[{Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}]",
-        description: "Sintaxis: [{titulo}{artista}{categoria}{estado}{letra}]\nEjemplo: [{Canción Ejemplo}{Artista X}{misa}{pendiente}{[C]Letra de la canción...}]\nCategorías: misa, gen, fogon. Estados: pendiente, publicado, rechazado.",
+        syntax: '[{"titulo": "Título", "artista": "Artista", "categoria": "misa/gen/fogon", "estado": "pendiente/publicado/rechazado", "letra": "Letra..."}]',
+        example: '[{"titulo": "Canción Ejemplo", "artista": "Artista X", "categoria": "misa", "estado": "pendiente", "letra": "[C]Letra de la canción..."}]',
+        description: 'Sintaxis: [{"titulo": "...", "artista": "...", "categoria": "...", "estado": "...", "letra": "..."}]\nEjemplo: [{"titulo": "Canción Ejemplo", "artista": "Artista X", "categoria": "misa", "estado": "pendiente", "letra": "[C]Letra de la canción..."}]\nCategorías: misa, gen, fogon. Estados: pendiente, publicado, rechazado.\nPega un array JSON válido.',
         fields: ['titulo', 'artista', 'categoria', 'estado', 'letra'],
         collection: 'cancionero'
     },
     recursos: {
-        syntax: "[{titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}]",
-        example: "[{Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}]",
-        description: "Sintaxis: [{titulo}{categoria}{estado}{descripcion}{objetivo}{duracion}{participantes}{materiales}{pasos}{autor}]\nEjemplo: [{Recurso Ejemplo}{dinamicas}{pendiente}{Descripción breve}{Objetivo del recurso}{30 minutos}{10-15 personas}{Material 1\\nMaterial 2}{Paso 1: ...\\nPaso 2: ...}{Autor X}]\nCategorías: dinamicas, juegos, reflexiones, retiros. Estados: pendiente, publicado, rechazado.",
+        syntax: '[{"titulo": "Título", "categoria": "dinamicas/juegos/reflexiones/retiros", "estado": "pendiente/publicado/rechazado", "descripcion": "Descripción", "objetivo": "Objetivo", "duracion": "Duración", "participantes": "Participantes", "materiales": ["Material 1", "Material 2"], "pasos": ["Paso 1", "Paso 2"], "autor": "Autor"}]',
+        example: '[{"titulo": "Recurso Ejemplo", "categoria": "dinamicas", "estado": "pendiente", "descripcion": "Descripción breve", "objetivo": "Objetivo del recurso", "duracion": "30 minutos", "participantes": "10-15 personas", "materiales": ["Material 1", "Material 2"], "pasos": ["Paso 1: ...", "Paso 2: ..."], "autor": "Autor X"}]',
+        description: 'Sintaxis: [{"titulo": "...", "categoria": "...", "estado": "...", "descripcion": "...", "objetivo": "...", "duracion": "...", "participantes": "...", "materiales": [...], "pasos": [...], "autor": "..."}]\nEjemplo: [{"titulo": "Recurso Ejemplo", "categoria": "dinamicas", "estado": "pendiente", "descripcion": "Descripción breve", "objetivo": "Objetivo del recurso", "duracion": "30 minutos", "participantes": "10-15 personas", "materiales": ["Material 1", "Material 2"], "pasos": ["Paso 1: ...", "Paso 2: ..."], "autor": "Autor X"}]\nCategorías: dinamicas, juegos, reflexiones, retiros. Estados: pendiente, publicado, rechazado.\nPega un array JSON válido.',
         fields: ['titulo', 'categoria', 'estado', 'descripcion', 'objetivo', 'duracion', 'participantes', 'materiales', 'pasos', 'autor'],
         collection: 'recursos'
     },
     frases: {
-        syntax: "[{texto}{autor}]",
-        example: "[{Esta es una frase inspiradora}{Autor Y}]",
-        description: "Sintaxis: [{texto}{autor}]\nEjemplo: [{Esta es una frase inspiradora}{Autor Y}]",
+        syntax: '[{"texto": "Frase", "autor": "Autor"}]',
+        example: '[{"texto": "Esta es una frase inspiradora", "autor": "Autor Y"}]',
+        description: 'Sintaxis: [{"texto": "...", "autor": "..."}]\nEjemplo: [{"texto": "Esta es una frase inspiradora", "autor": "Autor Y"}]\nPega un array JSON válido.',
         fields: ['texto', 'autor'],
         collection: 'frases'
     }
@@ -1203,52 +1203,48 @@ function initBulkUpload() {
         }
 
         const config = bulkConfigs[type];
-        const regex = /\[([^\]]*)\]/g;
-        const matches = [...data.matchAll(regex)];
-        const items = matches.map(match => match[1]);
+        let items;
+        try {
+            items = JSON.parse(data);
+            if (!Array.isArray(items)) {
+                alert('Los datos deben ser un array JSON válido.');
+                return;
+            }
+        } catch (e) {
+            alert('Error al parsear JSON: ' + e.message);
+            return;
+        }
 
         if (items.length === 0) {
-            alert('No hay entradas válidas encontradas. Asegúrate de que cada entrada esté entre [ ].');
+            alert('No hay entradas para procesar.');
             return;
         }
 
         let successCount = 0;
         let errorCount = 0;
 
-        for (const item of items) {
-            let parts;
-            if (type === 'meditaciones') {
-                parts = item.split('}{').map(part => part.replace(/[\[\]{}]/g, '').trim());
-            } else {
-                parts = item.split('}{').map(part => part.replace(/[\[\]{}]/g, '').trim());
-            }
-            if (parts.length < config.fields.length - 1) { // permitir opcional descripción
-                console.warn(`Entrada inválida: ${item}`);
+        for (const itemData of items) {
+            // Validar que tenga los campos requeridos
+            const requiredFields = config.fields.slice(0, -1); // todos menos el último (opcional)
+            const missing = requiredFields.filter(field => !itemData[field]);
+            if (missing.length > 0) {
+                console.warn(`Entrada inválida, faltan campos: ${missing.join(', ')}`);
                 errorCount++;
                 continue;
             }
 
-            const itemData = {};
-            config.fields.forEach((field, index) => {
-                if (parts[index]) {
-                    if (field === 'materiales' || field === 'pasos') {
-                        itemData[field] = parts[index].split('\n').map(s => s.trim()).filter(s => s);
-                    } else {
-                        itemData[field] = parts[index];
-                    }
-                }
-            });
+            const finalItem = { ...itemData };
 
             // Agregar campos comunes
-            itemData.fechaCreacion = serverTimestamp();
-            itemData.activa = true;
+            finalItem.fechaCreacion = serverTimestamp();
+            finalItem.activa = true;
             if (type === 'cancionero') {
-                itemData.reproducciones = 0;
+                finalItem.reproducciones = 0;
             }
 
             try {
                 const id = `${config.collection}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                await setDoc(doc(db, config.collection, id), itemData);
+                await setDoc(doc(db, config.collection, id), finalItem);
                 successCount++;
             } catch (error) {
                 console.error('Error al subir:', error);
