@@ -81,6 +81,7 @@
                 <div class="section-grid">
                     <div class="form-panel">
                         <h2>➕ Agregar Pasapalabra</h2>
+                        <button type="button" id="pasapalabra-paste-process-save" class="btn-primary" style="margin-bottom:8px;">📋 Pegar del Portapapeles, Procesar y Guardar</button>
                         <div class="form-group">
                             <label>Pega el texto completo aquí</label>
                             <textarea id="pasapalabra-raw" rows="8" placeholder="Pega el texto con fecha, título y reflexión..."></textarea>
@@ -403,6 +404,10 @@
                                 <option value="recursos">📚 Recursos</option>
                                 <option value="frases">💭 Frases</option>
                             </select>
+                        </div>
+                        <div id="bulk-description" class="form-group" style="display:none;">
+                            <label>Descripción para IA:</label>
+                            <p id="bulk-description-text" style="margin:0;padding:8px;background:#f9f9f9;border-radius:4px;"></p>
                         </div>
                         <div id="bulk-syntax" class="form-group" style="display:none;">
                             <label>Sintaxis necesaria:</label>
