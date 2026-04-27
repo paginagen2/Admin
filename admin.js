@@ -662,6 +662,15 @@ async function loadMeditaciones() {
         const q = query(collection(db, 'meditaciones'), orderBy('titulo'));
         const querySnapshot = await getDocs(q);
         allMeditaciones = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Actualizar meditaciones existentes que no tengan meditacion_diaria
+        for (const med of allMeditaciones) {
+            if (med.meditacion_diaria === undefined) {
+                await setDoc(doc(db, 'meditaciones', med.id), { meditacion_diaria: true }, { merge: true });
+                med.meditacion_diaria = true; // actualizar localmente
+            }
+        }
+        
         displayMeditaciones(allMeditaciones);
     } catch (error) {
         console.error('Error al cargar meditaciones:', error);
@@ -734,8 +743,9 @@ if (medSaveBtn) {
         const pagina = (document.getElementById('meditacion-pagina').value || '').trim();
         const autor = (document.getElementById('meditacion-autor').value || '').trim();
         const descripcion = (document.getElementById('meditacion-descripcion').value || '').trim();
+        const meditacionDiaria = document.getElementById('meditacion-diaria').checked;
 
-        const data = { titulo, contenido };
+        const data = { titulo, contenido, meditacion_diaria: meditacionDiaria };
         if (libro) data.libro = libro;
         if (pagina) data.pagina = pagina;
         if (autor) data.autor = autor;
@@ -790,6 +800,7 @@ function editMeditacion(item) {
     document.getElementById('meditacion-pagina').value = item.pagina || '';
     document.getElementById('meditacion-autor').value = item.autor || '';
     document.getElementById('meditacion-descripcion').value = item.descripcion || '';
+    document.getElementById('meditacion-diaria').checked = item.meditacion_diaria !== false;
     // mostrar botones de cancelar/eliminar
     const cancelBtn = document.getElementById('meditacion-cancel');
     const delBtn = document.getElementById('meditacion-delete');
@@ -807,6 +818,7 @@ function resetMeditacionForm() {
     document.getElementById('meditacion-pagina').value = '';
     document.getElementById('meditacion-autor').value = '';
     document.getElementById('meditacion-descripcion').value = '';
+    document.getElementById('meditacion-diaria').checked = true;
     const cancelBtn = document.getElementById('meditacion-cancel');
     const delBtn = document.getElementById('meditacion-delete');
     if (cancelBtn) cancelBtn.style.display = 'none';
