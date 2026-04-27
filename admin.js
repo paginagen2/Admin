@@ -729,28 +729,6 @@ function displayMeditaciones(items) {
         });
     });
 
-    // listener for update all
-    const updateAllBtn = document.getElementById('update-all-meditaciones');
-    if (updateAllBtn) {
-        updateAllBtn.addEventListener('click', async () => {
-            if (!confirm('¿Actualizar todas las meditaciones con "activa: true"?')) return;
-            try {
-                let count = 0;
-                for (const med of allMeditaciones) {
-                    if (med.activa === undefined) {
-                        await setDoc(doc(db, 'meditaciones', med.id), { activa: true }, { merge: true });
-                        med.activa = true;
-                        count++;
-                    }
-                }
-                alert(`✅ Actualizadas ${count} meditaciones`);
-                loadMeditaciones(); // recargar para refrescar
-            } catch (err) {
-                console.error('Error al actualizar:', err);
-                alert('❌ Error: ' + err.message);
-            }
-        });
-    }
 }
 
 // Guardar una meditación individual
