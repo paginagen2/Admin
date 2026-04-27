@@ -663,11 +663,11 @@ async function loadMeditaciones() {
         const querySnapshot = await getDocs(q);
         allMeditaciones = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        // Actualizar meditaciones existentes que no tengan meditacion_diaria
+        // Actualizar meditaciones existentes que no tengan activa
         for (const med of allMeditaciones) {
-            if (med.meditacion_diaria === undefined) {
-                await setDoc(doc(db, 'meditaciones', med.id), { meditacion_diaria: true }, { merge: true });
-                med.meditacion_diaria = true; // actualizar localmente
+            if (med.activa === undefined) {
+                await setDoc(doc(db, 'meditaciones', med.id), { activa: true }, { merge: true });
+                med.activa = true; // actualizar localmente
             }
         }
         
@@ -728,6 +728,29 @@ function displayMeditaciones(items) {
             }
         });
     });
+
+    // listener for update all
+    const updateAllBtn = document.getElementById('update-all-meditaciones');
+    if (updateAllBtn) {
+        updateAllBtn.addEventListener('click', async () => {
+            if (!confirm('¿Actualizar todas las meditaciones con "activa: true"?')) return;
+            try {
+                let count = 0;
+                for (const med of allMeditaciones) {
+                    if (med.activa === undefined) {
+                        await setDoc(doc(db, 'meditaciones', med.id), { activa: true }, { merge: true });
+                        med.activa = true;
+                        count++;
+                    }
+                }
+                alert(`✅ Actualizadas ${count} meditaciones`);
+                loadMeditaciones(); // recargar para refrescar
+            } catch (err) {
+                console.error('Error al actualizar:', err);
+                alert('❌ Error: ' + err.message);
+            }
+        });
+    }
 }
 
 // Guardar una meditación individual
@@ -745,7 +768,7 @@ if (medSaveBtn) {
         const descripcion = (document.getElementById('meditacion-descripcion').value || '').trim();
         const meditacionDiaria = document.getElementById('meditacion-diaria').checked;
 
-        const data = { titulo, contenido, meditacion_diaria: meditacionDiaria };
+        const data = { titulo, contenido, activa: meditacionDiaria };
         if (libro) data.libro = libro;
         if (pagina) data.pagina = pagina;
         if (autor) data.autor = autor;
@@ -800,7 +823,7 @@ function editMeditacion(item) {
     document.getElementById('meditacion-pagina').value = item.pagina || '';
     document.getElementById('meditacion-autor').value = item.autor || '';
     document.getElementById('meditacion-descripcion').value = item.descripcion || '';
-    document.getElementById('meditacion-diaria').checked = item.meditacion_diaria !== false;
+    document.getElementById('meditacion-diaria').checked = item.activa !== false;
     // mostrar botones de cancelar/eliminar
     const cancelBtn = document.getElementById('meditacion-cancel');
     const delBtn = document.getElementById('meditacion-delete');
