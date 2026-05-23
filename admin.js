@@ -7,6 +7,7 @@ import {
     setDoc,
     deleteDoc,
     serverTimestamp,
+    Timestamp,
     query,
     where,
     orderBy
@@ -15,9 +16,18 @@ import {
     getAuth,
     onAuthStateChanged,
     signInWithPopup,
+    signInWithRedirect,
     GoogleAuthProvider,
+    signInWithCredential,
     signOut
 } from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js';
+
+import {
+    getStorage,
+    ref as storageRef,
+    uploadBytes,
+    getDownloadURL
+} from 'https://www.gstatic.com/firebasejs/10.9.0/firebase-storage.js';
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -34,6 +44,40 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+const storage = getStorage(app);
+
+function setupCapacitorAppUrlOpen() {
+    const CapacitorGlobal = window.Capacitor;
+    let isNative = false;
+
+    if (CapacitorGlobal) {
+        if (typeof CapacitorGlobal.isNativePlatform === 'function') {
+            isNative = CapacitorGlobal.isNativePlatform();
+        } else if (typeof CapacitorGlobal.getPlatform === 'function') {
+            isNative = CapacitorGlobal.getPlatform() !== 'web';
+        }
+    }
+
+    if (!isNative) {
+        return;
+    }
+
+    const AppPlugin = CapacitorGlobal.Plugins && (CapacitorGlobal.Plugins.App || CapacitorGlobal.Plugins.app);
+    if (!AppPlugin || typeof AppPlugin.addListener !== 'function') {
+        console.warn('Capacitor App plugin no disponible para appUrlOpen');
+        return;
+    }
+
+    AppPlugin.addListener('appUrlOpen', (event) => {
+        console.log('Capacitor appUrlOpen:', event.url);
+        if (typeof event.url !== 'string') return;
+        if (event.url.includes('/__/auth/handler')) {
+            window.location.href = event.url;
+        }
+    });
+}
+
+setupCapacitorAppUrlOpen();
 
 // Variables globales
 let currentUser = null;
@@ -69,9 +113,31 @@ function parseDateDDMMYYYY(dateStr) {
 
 // ==================== AUTENTICACIÓN ====================
 
+function isCapacitorNative() {
+    const CapacitorGlobal = window.Capacitor;
+    if (!CapacitorGlobal) return false;
+    if (typeof CapacitorGlobal.isNativePlatform === 'function') {
+        return CapacitorGlobal.isNativePlatform();
+    }
+    if (typeof CapacitorGlobal.getPlatform === 'function') {
+        return CapacitorGlobal.getPlatform() !== 'web';
+    }
+    return false;
+}
+
 document.getElementById('google-signin-btn').addEventListener('click', async () => {
     try {
-        await signInWithPopup(auth, provider);
+        if (isCapacitorNative()) {
+            // Usar el plugin nativo de Google Auth
+            const { GoogleAuth } = window.Capacitor.Plugins;
+            const googleUser = await GoogleAuth.signIn();
+
+            // Convertir la credencial de Google para Firebase
+            const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+            await signInWithCredential(auth, credential);
+        } else {
+            await signInWithPopup(auth, provider);
+        }
     } catch (error) {
         console.error('Error al iniciar sesión:', error);
         alert('Error al iniciar sesión: ' + error.message);
@@ -143,6 +209,9 @@ function loadCurrentSection() {
             break;
         case 'frases':
             loadFrases();
+            break;
+        case 'pdv':
+            loadPdV();
             break;
         case 'lyrics':
             initLyricsCorrector();
@@ -566,6 +635,170 @@ document.getElementById('pasapalabra-search').addEventListener('input', () => {
     displayPasapalabra(filtered);
 });
 
+// ==================== PALABRA DE VIDA (PdV) ====================
+
+let allPdvs = [];
+
+async function loadPdV() {
+    try {
+        const q = query(collection(db, 'pdv'), orderBy('fecha', 'desc'));
+        const querySnapshot = await getDocs(q);
+        allPdvs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        displayPdV(allPdvs);
+    } catch (error) {
+        console.error('Error al cargar PdV:', error);
+    }
+}
+
+function displayPdV(items) {
+    const list = document.getElementById('pdv-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!items || items.length === 0) {
+        list.innerHTML = '<div style="color:#666">No hay PdV cargadas.</div>';
+        return;
+    }
+
+    items.forEach(it => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;">
+                <div style="flex:1">
+                    <div class="item-title">${it.titulo || 'Sin título'}</div>
+                    <div class="item-subtitle">${it.mes || ''} ${it.autor ? ' • ' + it.autor : ''}</div>
+                    <div style="margin-top:6px;color:#444;">${(it.contenidoPrincipal || '').substring(0,140)}...</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button class="btn-edit-pdv" data-id="${it.id}">✏️ Editar</button>
+                    <button class="btn-delete-pdv" data-id="${it.id}">🗑️ Eliminar</button>
+                </div>
+            </div>
+        `;
+        list.appendChild(el);
+    });
+
+    document.querySelectorAll('.btn-edit-pdv').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const item = allPdvs.find(p => p.id === id);
+            if (item) editPdV(item);
+        });
+    });
+
+    document.querySelectorAll('.btn-delete-pdv').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            if (!confirm('¿Eliminar esta PdV?')) return;
+            try {
+                await deleteDoc(doc(db, 'pdv', id));
+                alert('✅ PdV eliminada con éxito');
+                loadPdV();
+            } catch (err) {
+                console.error('Error al eliminar PdV:', err);
+                alert('❌ Error al eliminar la PdV');
+            }
+        });
+    });
+}
+
+function editPdV(item) {
+    editingId = item.id;
+    const form = document.getElementById('pdv-form');
+    form.dataset.editingId = item.id;
+
+    document.getElementById('pdv-mes').value = item.mes || '';
+    if (item.fecha && typeof item.fecha.toDate === 'function') {
+        const d = item.fecha.toDate();
+        document.getElementById('pdv-fecha').value = d.toISOString().slice(0,10);
+    } else if (item.fecha instanceof Date) {
+        document.getElementById('pdv-fecha').value = item.fecha.toISOString().slice(0,10);
+    }
+    document.getElementById('pdv-titulo').value = item.titulo || '';
+    document.getElementById('pdv-audioUrl').value = item.audioUrl || '';
+    document.getElementById('pdv-contenidoPrincipal').value = item.contenidoPrincipal || '';
+    document.getElementById('pdv-reflexion').value = item.reflexion || '';
+    document.getElementById('pdv-autor').value = item.autor || '';
+    document.getElementById('pdv-urlSlug').value = item.urlSlug || '';
+}
+
+const pdvForm = document.getElementById('pdv-form');
+if (pdvForm) {
+    pdvForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser) { alert('Inicia sesión primero'); return; }
+        const form = document.getElementById('pdv-form');
+        const formEditingId = form.dataset.editingId || null;
+
+        // si hay un archivo de audio seleccionado, subirlo primero y obtener URL
+        const fechaVal = document.getElementById('pdv-fecha').value;
+        const fechaTimestamp = fechaVal ? Timestamp.fromDate(new Date(fechaVal)) : serverTimestamp();
+
+        const audioFileInput = document.getElementById('pdv-audioFile');
+        let audioUrl = (document.getElementById('pdv-audioUrl').value || '').trim();
+        if (audioFileInput && audioFileInput.files && audioFileInput.files[0]) {
+            try {
+                audioUrl = await uploadAudioFile(audioFileInput.files[0]);
+                document.getElementById('pdv-audioUrl').value = audioUrl;
+            } catch (err) {
+                console.error('Error al subir audio:', err);
+                alert('❌ Error al subir audio: ' + (err && err.message));
+                return;
+            }
+        }
+
+        const data = {
+            mes: document.getElementById('pdv-mes').value.trim(),
+            fecha: fechaTimestamp,
+            titulo: document.getElementById('pdv-titulo').value.trim(),
+            audioUrl: audioUrl,
+            contenidoPrincipal: document.getElementById('pdv-contenidoPrincipal').value.trim(),
+            reflexion: document.getElementById('pdv-reflexion').value.trim(),
+            autor: document.getElementById('pdv-autor').value.trim() || 'Administrador',
+            urlSlug: document.getElementById('pdv-urlSlug').value.trim(),
+            fechaCreacion: serverTimestamp()
+        };
+
+        try {
+            if (formEditingId) {
+                await setDoc(doc(db, 'pdv', formEditingId), data, { merge: true });
+                alert('✅ PdV actualizada con éxito');
+                delete form.dataset.editingId;
+            } else {
+                const id = `pdv_${Date.now()}`;
+                await setDoc(doc(db, 'pdv', id), data);
+                alert('✅ PdV guardada con éxito');
+            }
+            pdvForm.reset();
+            loadPdV();
+        } catch (err) {
+            console.error('Error al guardar PdV:', err);
+            alert('❌ Error al guardar la PdV: ' + (err && err.message));
+        }
+    });
+}
+
+// Función para subir audio a Firebase Storage y devolver la URL pública
+async function uploadAudioFile(file) {
+    if (!file) throw new Error('No file provided');
+    const path = `pdv_audio/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const ref = storageRef(storage, path);
+    await uploadBytes(ref, file);
+    const url = await getDownloadURL(ref);
+    return url;
+}
+
+// Buscador PdV
+const pdvSearch = document.getElementById('pdv-search');
+if (pdvSearch) {
+    pdvSearch.addEventListener('input', () => {
+        const q = pdvSearch.value.trim().toLowerCase();
+        if (!q) return displayPdV(allPdvs);
+        const filtered = allPdvs.filter(p => (p.titulo||'').toLowerCase().includes(q) || (p.mes||'').toLowerCase().includes(q));
+        displayPdV(filtered);
+    });
+}
+
 function processPasapalabraRawToForm() {
     const rawText = document.getElementById('pasapalabra-raw').value || '';
     const lines = rawText.split('\n').map(l => l.trim()).filter(line => line);
@@ -745,8 +978,11 @@ if (medSaveBtn) {
         const autor = (document.getElementById('meditacion-autor').value || '').trim();
         const descripcion = (document.getElementById('meditacion-descripcion').value || '').trim();
         const meditacionDiaria = document.getElementById('meditacion-diaria').checked;
+        const meditacionCategoria = document.getElementById('meditacion-categoria-meditacion').checked;
+        const informacionCategoria = document.getElementById('meditacion-categoria-informacion').checked;
+        const publicoCategoria = document.getElementById('meditacion-categoria-publico').checked;
 
-        const data = { titulo, contenido, activa: meditacionDiaria };
+        const data = { titulo, contenido, activa: meditacionDiaria, 'Meditación': meditacionCategoria, 'Informacion': informacionCategoria, 'Publico': publicoCategoria };
         if (libro) data.libro = libro;
         if (pagina) data.pagina = pagina;
         if (autor) data.autor = autor;
@@ -802,6 +1038,9 @@ function editMeditacion(item) {
     document.getElementById('meditacion-autor').value = item.autor || '';
     document.getElementById('meditacion-descripcion').value = item.descripcion || '';
     document.getElementById('meditacion-diaria').checked = item.activa !== false;
+    document.getElementById('meditacion-categoria-meditacion').checked = item['Meditación'] !== false;
+    document.getElementById('meditacion-categoria-informacion').checked = item['Informacion'] === true;
+    document.getElementById('meditacion-categoria-publico').checked = item['Publico'] !== false;
     // mostrar botones de cancelar/eliminar
     const cancelBtn = document.getElementById('meditacion-cancel');
     const delBtn = document.getElementById('meditacion-delete');
@@ -820,6 +1059,9 @@ function resetMeditacionForm() {
     document.getElementById('meditacion-autor').value = '';
     document.getElementById('meditacion-descripcion').value = '';
     document.getElementById('meditacion-diaria').checked = true;
+    document.getElementById('meditacion-categoria-meditacion').checked = true;
+    document.getElementById('meditacion-categoria-informacion').checked = false;
+    document.getElementById('meditacion-categoria-publico').checked = true;
     const cancelBtn = document.getElementById('meditacion-cancel');
     const delBtn = document.getElementById('meditacion-delete');
     if (cancelBtn) cancelBtn.style.display = 'none';

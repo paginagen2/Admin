@@ -64,6 +64,10 @@
                 <span class="nav-icon">💭</span>
                 <span class="nav-text">Frases</span>
             </button>
+            <button class="nav-btn" data-section="pdv">
+                <span class="nav-icon">📖</span>
+                <span class="nav-text">Palabra de Vida</span>
+            </button>
             <button class="nav-btn" data-section="lyrics">
                 <span class="nav-icon">🎼</span>
                 <span class="nav-text">Corrección Letras</span>
@@ -154,6 +158,27 @@
                                 <input type="checkbox" id="meditacion-diaria" checked>
                                 <span class="checkbox-custom"></span>
                                 Meditación Diaria
+                            </label>
+                        </div>
+                        <div class="form-group form-group-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="meditacion-categoria-meditacion" checked>
+                                <span class="checkbox-custom"></span>
+                                Meditación
+                            </label>
+                        </div>
+                        <div class="form-group form-group-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="meditacion-categoria-informacion">
+                                <span class="checkbox-custom"></span>
+                                Información
+                            </label>
+                        </div>
+                        <div class="form-group form-group-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="meditacion-categoria-publico" checked>
+                                <span class="checkbox-custom"></span>
+                                Público
                             </label>
                         </div>
                         <div class="form-actions">
@@ -370,6 +395,64 @@
             </section>
 
             <!-- SECCIÓN CORRECCIÓN LETRAS -->
+            <section id="pdv-section" class="content-section">
+                <div class="section-grid">
+                    <div class="form-panel">
+                        <h2>📖 Palabra de Vida (PdV)</h2>
+                        <form id="pdv-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Mes</label>
+                                    <input type="text" id="pdv-mes" placeholder="Mayo 2026">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha *</label>
+                                    <input type="date" id="pdv-fecha" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Título *</label>
+                                <textarea id="pdv-titulo" rows="3" placeholder="Título completo" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                    <label>Audio (archivo .mp3) — opcional</label>
+                                    <input type="file" id="pdv-audioFile" accept="audio/*">
+                                    <p style="font-size:12px;color:#666;margin-top:6px;">Si subes un archivo, se cargará a Firebase Storage y la URL se guardará automáticamente.</p>
+                                    <input type="text" id="pdv-audioUrl" placeholder="https://..." readonly>
+                                </div>
+                            <div class="form-group">
+                                <label>Contenido Principal *</label>
+                                <textarea id="pdv-contenidoPrincipal" rows="6" placeholder="Contenido principal..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Reflexión</label>
+                                <textarea id="pdv-reflexion" rows="4" placeholder="Reflexión..."></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Autor</label>
+                                    <input type="text" id="pdv-autor" placeholder="Autor(es)">
+                                </div>
+                                <div class="form-group">
+                                    <label>URL Slug</label>
+                                    <input type="text" id="pdv-urlSlug" placeholder="mayo-2026">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">💾 Guardar PdV</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="list-panel">
+                        <h2>📖 PdV Guardadas</h2>
+                        <div class="controls">
+                            <input type="text" id="pdv-search" placeholder="🔍 Buscar por mes o título...">
+                        </div>
+                        <div id="pdv-list" class="item-list"></div>
+                    </div>
+                </div>
+            </section>
             <section id="lyrics-section" class="content-section">
                 <div class="section-grid">
                     <div class="form-panel" style="grid-column: 1 / -1;">
