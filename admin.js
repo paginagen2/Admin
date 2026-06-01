@@ -641,7 +641,7 @@ let allPdvs = [];
 
 async function loadPdV() {
     try {
-        const q = query(collection(db, 'pdv'), orderBy('fecha', 'desc'));
+        const q = query(collection(db, 'palabrasDeVida'), orderBy('fecha', 'desc'));
         const querySnapshot = await getDocs(q);
         allPdvs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         displayPdV(allPdvs);
@@ -666,7 +666,7 @@ function displayPdV(items) {
             <div style="display:flex;justify-content:space-between;gap:12px;">
                 <div style="flex:1">
                     <div class="item-title">${it.titulo || 'Sin título'}</div>
-                    <div class="item-subtitle">${it.mes || ''} ${it.autor ? ' • ' + it.autor : ''}</div>
+                    <div class="item-subtitle">${it.referencia || ''} • ${it.mes || ''} ${it.autor ? ' • ' + it.autor : ''}</div>
                     <div style="margin-top:6px;color:#444;">${(it.contenidoPrincipal || '').substring(0,140)}...</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
@@ -691,7 +691,7 @@ function displayPdV(items) {
             const id = btn.dataset.id;
             if (!confirm('¿Eliminar esta PdV?')) return;
             try {
-                await deleteDoc(doc(db, 'pdv', id));
+                await deleteDoc(doc(db, 'palabrasDeVida', id));
                 alert('✅ PdV eliminada con éxito');
                 loadPdV();
             } catch (err) {
@@ -715,8 +715,10 @@ function editPdV(item) {
         document.getElementById('pdv-fecha').value = item.fecha.toISOString().slice(0,10);
     }
     document.getElementById('pdv-titulo').value = item.titulo || '';
+    document.getElementById('pdv-referencia').value = item.referencia || '';
     document.getElementById('pdv-audioUrl').value = item.audioUrl || '';
     document.getElementById('pdv-contenidoPrincipal').value = item.contenidoPrincipal || '';
+    document.getElementById('pdv-citaRepetida').value = item.citaRepetida || '';
     document.getElementById('pdv-reflexion').value = item.reflexion || '';
     document.getElementById('pdv-autor').value = item.autor || '';
     document.getElementById('pdv-urlSlug').value = item.urlSlug || '';
@@ -751,8 +753,10 @@ if (pdvForm) {
             mes: document.getElementById('pdv-mes').value.trim(),
             fecha: fechaTimestamp,
             titulo: document.getElementById('pdv-titulo').value.trim(),
+            referencia: document.getElementById('pdv-referencia').value.trim(),
             audioUrl: audioUrl,
             contenidoPrincipal: document.getElementById('pdv-contenidoPrincipal').value.trim(),
+            citaRepetida: document.getElementById('pdv-citaRepetida').value.trim(),
             reflexion: document.getElementById('pdv-reflexion').value.trim(),
             autor: document.getElementById('pdv-autor').value.trim() || 'Administrador',
             urlSlug: document.getElementById('pdv-urlSlug').value.trim(),
@@ -761,12 +765,12 @@ if (pdvForm) {
 
         try {
             if (formEditingId) {
-                await setDoc(doc(db, 'pdv', formEditingId), data, { merge: true });
+                await setDoc(doc(db, 'palabrasDeVida', formEditingId), data, { merge: true });
                 alert('✅ PdV actualizada con éxito');
                 delete form.dataset.editingId;
             } else {
                 const id = `pdv_${Date.now()}`;
-                await setDoc(doc(db, 'pdv', id), data);
+                await setDoc(doc(db, 'palabrasDeVida', id), data);
                 alert('✅ PdV guardada con éxito');
             }
             pdvForm.reset();
@@ -1420,6 +1424,13 @@ const bulkConfigs = {
         description: 'Sintaxis: [{"texto": "...", "autor": "..."}]\nEjemplo: [{"texto": "Esta es una frase inspiradora", "autor": "Autor Y"}]\nPega un array JSON válido.',
         fields: ['texto', 'autor'],
         collection: 'frases'
+    },
+    pdv: {
+        syntax: '[{"mes": "Mes Año", "fecha": "YYYY-MM-DD", "urlSlug": "slug", "titulo": "Título", "referencia": "Ref", "audioUrl": "URL", "contenidoPrincipal": "...", "citaRepetida": "...", "reflexion": "...", "autor": "..."}]',
+        example: '[{"mes": "Mayo 2026", "fecha": "2026-05-01", "urlSlug": "mayo-2026", "titulo": "Título Ejemplo", "referencia": "(Juan 20, 21-22)", "audioUrl": "https://...", "contenidoPrincipal": "Texto...", "citaRepetida": "Cita...", "reflexion": "Testimonio...", "autor": "Autor X"}]',
+        description: 'Sintaxis: [{"mes": "...", "fecha": "YYYY-MM-DD", "urlSlug": "...", "titulo": "...", "referencia": "...", "audioUrl": "...", "contenidoPrincipal": "...", "citaRepetida": "...", "reflexion": "...", "autor": "..."}]\nPega un array JSON válido. La fecha se convertirá a Timestamp automáticamente.',
+        fields: ['mes', 'fecha', 'urlSlug', 'titulo', 'referencia', 'audioUrl', 'contenidoPrincipal', 'citaRepetida', 'reflexion', 'autor'],
+        collection: 'palabrasDeVida'
     }
 };
 
@@ -1489,6 +1500,12 @@ function initBulkUpload() {
             }
 
             const finalItem = { ...itemData };
+
+            // Tratar campos especiales según el tipo
+            if (type === 'pdv' && finalItem.fecha) {
+                // Convertir string de fecha a Timestamp de Firestore
+                finalItem.fecha = Timestamp.fromDate(new Date(finalItem.fecha));
+            }
 
             // Agregar campos comunes
             finalItem.fechaCreacion = serverTimestamp();

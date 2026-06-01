@@ -15,7 +15,7 @@
     <!-- Pantalla de Login -->
     <div id="login-screen" class="login-container">
         <div class="login-box">
-            <h1>🎵 Panel de Administración</h1>
+            <h1>🥳 Panel de Administración</h1>
             <p>Inicia sesión con tu cuenta de Google</p>
             <button id="google-signin-btn" class="google-btn">
                 <svg class="google-icon" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@
             </button>
             <button class="nav-btn" data-section="pdv">
                 <span class="nav-icon">📖</span>
-                <span class="nav-text">Palabra de Vida</span>
+                <span class="nav-text">PdV</span>
             </button>
             <button class="nav-btn" data-section="lyrics">
                 <span class="nav-icon">🎼</span>
@@ -394,11 +394,11 @@
                 </div>
             </section>
 
-            <!-- SECCIÓN CORRECCIÓN LETRAS -->
+            <!-- SECCIÓN PdV -->
             <section id="pdv-section" class="content-section">
                 <div class="section-grid">
                     <div class="form-panel">
-                        <h2>📖 Palabra de Vida (PdV)</h2>
+                        <h2>📖 PdV (Palabra de Vida)</h2>
                         <form id="pdv-form">
                             <div class="form-row">
                                 <div class="form-group">
@@ -410,9 +410,15 @@
                                     <input type="date" id="pdv-fecha" required>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label>Título *</label>
-                                <textarea id="pdv-titulo" rows="3" placeholder="Título completo" required></textarea>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Título *</label>
+                                    <input type="text" id="pdv-titulo" placeholder="Título completo" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Referencia *</label>
+                                    <input type="text" id="pdv-referencia" placeholder="(Juan 20, 21-22)" required>
+                                </div>
                             </div>
                             <div class="form-group">
                                     <label>Audio (archivo .mp3) — opcional</label>
@@ -423,6 +429,10 @@
                             <div class="form-group">
                                 <label>Contenido Principal *</label>
                                 <textarea id="pdv-contenidoPrincipal" rows="6" placeholder="Contenido principal..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Cita Repetida *</label>
+                                <textarea id="pdv-citaRepetida" rows="2" placeholder="Cita que se repite..." required></textarea>
                             </div>
                             <div class="form-group">
                                 <label>Reflexión</label>
@@ -492,6 +502,7 @@
                                 <option value="cancionero">🎸 Cancionero</option>
                                 <option value="recursos">📚 Recursos</option>
                                 <option value="frases">💭 Frases</option>
+                                <option value="pdv">📖 PdV</option>
                             </select>
                         </div>
                         <div id="bulk-description" class="form-group" style="display:none;">
