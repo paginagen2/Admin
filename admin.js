@@ -641,9 +641,22 @@ let allPdvs = [];
 
 async function loadPdV() {
     try {
-        const q = query(collection(db, 'palabrasDeVida'), orderBy('fecha', 'desc'));
-        const querySnapshot = await getDocs(q);
-        allPdvs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Intentar cargar de ambas colecciones para no perder datos antiguos
+        const [snapNew, snapOld] = await Promise.all([
+            getDocs(query(collection(db, 'palabrasDeVida'), orderBy('fecha', 'desc'))),
+            getDocs(query(collection(db, 'pdv'), orderBy('fecha', 'desc')))
+        ]);
+
+        const itemsNew = snapNew.docs.map(d => ({ id: d.id, ...d.data(), source: 'palabrasDeVida' }));
+        const itemsOld = snapOld.docs.map(d => ({ id: d.id, ...d.data(), source: 'pdv' }));
+        
+        // Combinar y ordenar por fecha (Timestamp)
+        allPdvs = [...itemsNew, ...itemsOld].sort((a, b) => {
+            const dateA = a.fecha?.toMillis ? a.fecha.toMillis() : 0;
+            const dateB = b.fecha?.toMillis ? b.fecha.toMillis() : 0;
+            return dateB - dateA;
+        });
+
         displayPdV(allPdvs);
     } catch (error) {
         console.error('Error al cargar PdV:', error);
@@ -652,7 +665,7 @@ async function loadPdV() {
 
 function displayPdV(items) {
     const list = document.getElementById('pdv-list');
-    if (!list) return;
+    if (!list) return; 
     list.innerHTML = '';
     if (!items || items.length === 0) {
         list.innerHTML = '<div style="color:#666">No hay PdV cargadas.</div>';
@@ -668,10 +681,11 @@ function displayPdV(items) {
                     <div class="item-title">${it.titulo || 'Sin título'}</div>
                     <div class="item-subtitle">${it.referencia || ''} • ${it.mes || ''} ${it.autor ? ' • ' + it.autor : ''}</div>
                     <div style="margin-top:6px;color:#444;">${(it.contenidoPrincipal || '').substring(0,140)}...</div>
+                    ${it.source === 'pdv' ? '<div style="color: #e67e22; font-size: 11px; margin-top: 4px;">⚠️ Dato en colección antigua (pdv)</div>' : ''}
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                     <button class="btn-edit-pdv" data-id="${it.id}">✏️ Editar</button>
-                    <button class="btn-delete-pdv" data-id="${it.id}">🗑️ Eliminar</button>
+                    <button class="btn-delete-pdv" data-id="${it.id}" data-source="${it.source || 'palabrasDeVida'}">🗑️ Eliminar</button>
                 </div>
             </div>
         `;
@@ -689,9 +703,10 @@ function displayPdV(items) {
     document.querySelectorAll('.btn-delete-pdv').forEach(btn => {
         btn.addEventListener('click', async () => {
             const id = btn.dataset.id;
+            const source = btn.dataset.source || 'palabrasDeVida';
             if (!confirm('¿Eliminar esta PdV?')) return;
             try {
-                await deleteDoc(doc(db, 'palabrasDeVida', id));
+                await deleteDoc(doc(db, source, id));
                 alert('✅ PdV eliminada con éxito');
                 loadPdV();
             } catch (err) {
@@ -706,6 +721,7 @@ function editPdV(item) {
     editingId = item.id;
     const form = document.getElementById('pdv-form');
     form.dataset.editingId = item.id;
+    form.dataset.source = item.source || 'palabrasDeVida'; // Guardar origen para actualizar correctamente
 
     document.getElementById('pdv-mes').value = item.mes || '';
     if (item.fecha && typeof item.fecha.toDate === 'function') {
@@ -765,9 +781,11 @@ if (pdvForm) {
 
         try {
             if (formEditingId) {
-                await setDoc(doc(db, 'palabrasDeVida', formEditingId), data, { merge: true });
+                const source = form.dataset.source || 'palabrasDeVida';
+                await setDoc(doc(db, source, formEditingId), data, { merge: true });
                 alert('✅ PdV actualizada con éxito');
                 delete form.dataset.editingId;
+                delete form.dataset.source;
             } else {
                 const id = `pdv_${Date.now()}`;
                 await setDoc(doc(db, 'palabrasDeVida', id), data);
